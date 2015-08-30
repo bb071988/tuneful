@@ -12,13 +12,13 @@ class Song(Base):
 
     id = Column(Integer, primary_key=True)
     song_name = Column(String(64), nullable = True)
-    file_name = relationship("File", uselist=False, backref = "file")
+    file = relationship("File", uselist=False, backref = "file")
     
     def as_dictionary(self):
         song = {
             "song_id": self.id,
             "song_name":self.song_name,
-            "file_name": self.file_name.as_dictionary(),
+            "file": self.file.as_dictionary(),
             }
         return song
         

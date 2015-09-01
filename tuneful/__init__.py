@@ -12,4 +12,4 @@ import views
 from database import Base, engine
 Base.metadata.create_all(engine)
 
-app.debug = True #  just added 8.29
+

@@ -14,18 +14,7 @@ from tuneful import app
 from tuneful import models
 from tuneful.utils import upload_path
 from tuneful.database import Base, engine, session
-
-
-######### This function strips the unicode u's from the dictionary version of the returning bytes not unicode characters
-def byteify(input):
-    if isinstance(input, dict):
-        return {byteify(key):byteify(value) for key,value in input.iteritems()}
-    elif isinstance(input, list):
-        return [byteify(element) for element in input]
-    elif isinstance(input, unicode):
-        return input.encode('utf-8')
-    else:
-        return input
+from tuneful.api import stripUnicode
 
 
 class TestAPI(unittest.TestCase):
@@ -41,97 +30,73 @@ class TestAPI(unittest.TestCase):
         # Create folder for test uploads
         os.mkdir(upload_path())
         
-        
-    def testGetSongs(self):
-        """ Getting posts from a populated database """
-        
-        songA = models.Song(id=200,song_name='mysongname')
-        
-        fileA = models.File(id= 200, file_name = 'nosetestfile1',song_id= 200)
+    def testPostSong(self):
+       """ This test posts a simple json record to the post endpoint """
 
-        session.add_all([songA,fileA])
-        
-        session.commit()
-        
-        # print "******************************** testGetSongs *****************************"
-        
-        # print "This is the song ID: {}".format(json.dumps(songA.id))
-        # print "This is the song name: {}".format(json.dumps(songA.song_name))
-        # print "This is the song file name {}".format(json.dumps(fileA.file_name))
-        # print "This is the song file name {}".format(json.dumps(songA.file_name.as_dictionary()))
-       
-        song_list = session.query(models.Song).all()
-        
-        song_json = json.dumps([x.as_dictionary() for x in song_list])
-        
-        song_dict = json.loads(song_json)
-        
-        new_dict = byteify(song_dict)
-        
-        # print "Song List: {}".format(song_list)
-        # print "***********************************************************************"
-        # print "Song List JSON format {}".format(song_json)
-        # print "***********************************************************************"
-        # print "Song List Dictionary format {}".format(song_dict)
-        # print "***********************************************************************"
-        # for x in song_dict:
-        #     print x["file_name"]["file_name"]
-        # print "***********************************************************************"
-        # print "Try getting the song name from the dict {}".format(song_dict[0][u'file_name'][u'file_name'])
-        # print "************************************************************************"
-        # print "Try getting info from bytify version of dict {}".format(new_dict[0]['file_name']['file_name'])
-        
-        
-        response = self.client.get("/api/songs",
-            headers=[("Accept", "application/json")]
-        )
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, "application/json")
+       post_response = self.client.post('/api/songs/post',
+                                   data=json.dumps({"song_id":"8" ,"song_name":"songname8","file_name":"filename8","file_id":"8"}),
+                                   content_type='application/json',
+                                   follow_redirects=True,
+                                   headers=[("Accept", "application/json")]) # need this header or the decorator will send 406
     
-        self.assertEqual(new_dict[0]['file_name']['file_name'], "nosetestfile1")
-        
-        
-    def testAddSong(self):
-        
-        # data1 is a dictionary in python
-        data1 = {"song_name":"testsong100",
-        "id":100,
-        "file_name":"testfilename100"}
-        
-        ### does my json post need to be a string or a list?
-        
-        print "********************************* add song response follows ***************************************"
-        
-        print "data1 is: {} ".format(data1)
-        print "song name from data1 is {}: ".format(data1['song_name'])
-        
-        data2=json.loads("{'song_name':'testsong100','id':100,'file_name':'testfilename100'}") # converts data1 dict to json
-        
-        print "data2 is json as follows: {}".format(data2)
-        
-        # print "data2 is a dictionary: {} ".format(data2['song_name'])
-        
-        response = self.client.post("/api/songs/post",data=data2)
-        
-        # headers=[("Accept", "application/json")]
        
-        print "This is the response object: {}".format(response)
+       dict_response = json.loads(post_response.data) # convert json response to dictionary
+       
+       self.assertEqual(dict_response, {"song_id":"8" ,"song_name":"songname8","file_name":"filename8","file_id":"8"})
+
+
+    def testGetSong(self):
+        """ This test posts a record then gets it """
+        ## post a record to the database
         
+        post_response = self.client.post('/api/songs/post',
+                                  data=json.dumps({"song_id":"8" ,"song_name":"songname8","file_name":"filename8","file_id":"8"}),
+                                  content_type='application/json',
+                                  follow_redirects=True,
+                                  headers=[("Accept", "application/json")])
+                                   
+        
+    #################### Now we can get the songs
+       
+        get_response = self.client.get("api/songs",
+                                        content_type='application/json',
+                                        follow_redirects=True,
+                                        headers=[("Accept", "application/json")])
+       
+        # print "get response data is : {}".format(get_response.data)
+        # print "**** get response data type is {}".format(type(get_response.data))
+        
+        ## we get back a string containing a nested dict formated like a list [ dict {dict}]
+        # post api was modified to not send a nested json structure but because of model relationships
+        # we get nested json back however in  the get request
+        
+       
+        strip_response = get_response.data[1:-1]  # stripping the [] as api sends back a list of dictionary items
+        
+        dict_response = json.loads(strip_response) # convert json response to dictionary
+        
+        self.assertEqual(dict_response['song_id'], 8)
+        self.assertEqual(dict_response['file']['file_name'], "filename8") # note the nested structures here
 
-        # self.assertEqual(response.status_code, 302)
-        # self.assertEqual(urlparse(response.location).path, "/")
-        get_song = session.query(models.Song).get(1)
-        # for song in all_songs:
-        #     print all_songs[song] 
-        self.assertEqual(0,0)
-
-        data = json.loads(response.data)
-        print "This is the response data {}".format(data)
-        # post = posts[0]
-        # self.assertEqual(post.title, "Test Post")
-        # self.assertEqual(post.content, "<p>Test content</p>\n")
-        # self.assertEqual(post.author, self.user)
+    def testDeleteSong(self):
+        """ Post a record and then delete it """
+        ## post a record to the database
+        
+        post_response = self.client.post('/api/songs/post',
+                                  data=json.dumps({"song_id":"8" ,"song_name":"songname8","file_name":"filename8","file_id":"8"}),
+                                  content_type='application/json',
+                                  follow_redirects=True,
+                                  headers=[("Accept", "application/json")])    
+   
+        ### delete the record we just posted
+   
+        delete_response = self.client.delete('/api/songs/delete',
+                          data=json.dumps({"song_id":"8" ,"song_name":"songname8","file_name":"filename8","file_id":"8"}),
+                          content_type='application/json',
+                          follow_redirects=True,
+                          headers=[("Accept", "application/json")]) 
+                          
+        self.assertEqual(delete_response.status_code,200)
        
 
     def tearDown(self):

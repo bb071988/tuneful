@@ -39,16 +39,16 @@ def songs_get():
     
 
 @app.route("/api/songs/post", methods=["POST"])
-#@decorators.accept("application/json")
+@decorators.accept("application/json")
 def song_post():
     """ post a song """
     headers = {"Location": url_for("song_post"),"Content-Type": "application/json"}
-    # print "this is the header {}".format(headers)
-    # get the data from the form
-    data = request.json  
-    
+   
+    ######### get the data from the form
+    data = request.json
+
     post_song = models.Song(song_name=data["song_name"],id=data["song_id"])  ## ask sam if we really need to post seperately.
-    post_file = models.File(song_id=data["file"]["song_id"],file_name=data["file"]["file_name"],id=data["file"]["file_id"])
+    post_file = models.File(song_id=data["song_id"],file_name=data["file_name"],id=data["file_id"])
 
 
     if not session.query(models.Song).get(post_song.id):  #consider adding a check here for duplicate fileID too
@@ -58,7 +58,7 @@ def song_post():
         print "************* ELSE ***************"
         session.rollback()
         session.flush()
-        return Response(json.dumps({"status":"failed - that song already exists"}),500,mimetype="application/json")
+        return Response(json.dumps({"status":"failed - that song already exists"}),500, mimetype="application/json")
         
     return Response(stripUnicode(data), 200, headers=headers, mimetype="application/json")
     
@@ -73,7 +73,7 @@ def song_delete():
     data = request.json
     
     post_song = models.Song(song_name=data["song_name"],id=data["song_id"])  ## ask sam if we really need to post seperately.
-    post_file = models.File(song_id=data["file"]["song_id"],file_name=data["file"]["file_name"],id=data["file"]["file_id"])
+    post_file = models.File(song_id=data["song_id"],file_name=data["file_name"],id=data["file_id"])
   
     if session.query(models.Song).get(post_song.id):  #consider adding a check here for duplicate fileID too
         del_song=session.query(models.Song).get(post_song.id)
@@ -101,8 +101,6 @@ def stripUnicode(input_string):
 
 ####################################################################################################################################
 """ Notes
-I think that the post endpoint could be reconfigured to take json in different format.  This is essentially processing
-the request for the song and ignoring the file.
 
 Talk to Sam about json client is sending api.  Right now it is sending the key fields.  Seems like those should increment automatically
 otherwise client needs to keep track of them which makes no sense.
@@ -112,10 +110,15 @@ vs raw function
 
 Also review python path and unittest with Sam since this nosetest bug is a pain.
 
-Revisit headers - I think that the api/post seems good.  Returns json.
+Revisit headers - I think that the api/post seems good.  Returns json. also  added accept application/json to test request
 
-test json
+test json - old test json modified now.  
 {"song_id": 8, "song_name": "songname8", "file": {"file_name": "filename8", "song_id": 8, "file_id": 8}}
+
+json.dumps encodes python to json
+json.loads encodes json to python
+
+changed api and tests to account for nested dict e.g., dict of dict problems with flask testing
 
 
 """

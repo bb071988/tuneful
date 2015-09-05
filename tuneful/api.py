@@ -91,6 +91,35 @@ def song_delete():
     
     return Response(json.dumps({"status":"deleted"}), 200, headers=headers, mimetype="application/json")
     
+
+#########################################################################################################
+
+@app.route("/uploads/<file_name>", methods=["GET"])
+def uploaded_file(file_name):
+    return send_from_directory(upload_path(), file_name)
+
+
+
+
+@app.route("/api/files", methods=["POST"])
+@decorators.require("multipart/form-data")
+@decorators.accept("application/json")
+def file_post():
+    file= request.files.get("file")
+    if not file:
+        data = {"message": "Could not find file data"}
+        return Response(json.dumps(data), 422, mimetype="application/json")
+
+    filename = secure_filename(file.filename)
+    db_file = models.File(file_name=filename)
+    session.add(db_file)
+    session.commit()
+    file.save(upload_path(filename))
+
+    data = db_file.as_dictionary()
+    return Response(json.dumps(data), 201, mimetype="application/json")
+    
+
 def stripUnicode(input_string):
     """ This function takes a string as input.  Generally from response.json and adjusts format to better fit json 
         requirements by stripping leading u and substituting " for '. """

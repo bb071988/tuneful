@@ -1,3 +1,4 @@
+
 var Tuneful = function() {
     // Initialize the javascript to show the waveform in the bottom bar
     this.wavesurfer = Object.create(WaveSurfer);
@@ -33,6 +34,8 @@ var Tuneful = function() {
     // Get the current list of uploaded songs
     this.getSongs();
 };
+
+
 
 Tuneful.prototype.onSongClicked = function(event) {
     // Called when we load a new song

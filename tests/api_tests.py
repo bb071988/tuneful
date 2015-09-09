@@ -97,7 +97,7 @@ class TestAPI(unittest.TestCase):
                           headers=[("Accept", "application/json")]) 
                           
         self.assertEqual(delete_response.status_code,200)
-       
+        
 
     def tearDown(self):
         """ Test teardown """
@@ -107,5 +107,42 @@ class TestAPI(unittest.TestCase):
 
         # Delete test upload folder
         shutil.rmtree(upload_path())
+        
+#################################  adding file upload tests  ##########################################        
 
 
+    def test_get_uploaded_file(self):
+        """ get an uploaded file """
+        path =  upload_path("test.txt")
+        with open(path, "w") as f:
+            f.write("File contents")
+
+        response = self.client.get("/uploads/test.txt")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "text/plain")
+        self.assertEqual(response.data, "File contents")
+        
+    def test_file_upload(self):
+        """ upload a file to the server """
+        data = {
+            "file": (StringIO("File contents"), "test.txt")
+        }
+
+        response = self.client.post("/api/files",
+            data=data,
+            content_type="multipart/form-data",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data)
+        self.assertEqual(urlparse(data["path"]).path, "/uploads/test.txt")
+
+        path = upload_path("test.txt")
+        self.assertTrue(os.path.isfile(path))
+        with open(path) as f:
+            contents = f.read()
+        self.assertEqual(contents, "File contents")

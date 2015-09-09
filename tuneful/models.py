@@ -34,7 +34,16 @@ class File(Base):
             "file_id": self.id,
             "file_name": self.file_name,
             "song_id":self.song_id,
+            # trying to add for file functionality
+            "path": url_for("uploaded_file", filename=self.file_name)
             
             }
         return file       
         
+        
+# def as_dictionary(self):
+#     return {
+#         "id": self.id,
+#         "name": self.filename,
+#         "path": url_for("uploaded_file", filename=self.filename)
+#     }

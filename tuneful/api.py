@@ -21,7 +21,7 @@ def songs_get():
     """ Get  all the songs """
     # Get the songs from the database
     all_songs = session.query(models.Song).all()
-
+   
     # set the headers
     headers = {"Location": url_for("songs_get"),"Content-Type": "application/json"}
     
@@ -30,15 +30,15 @@ def songs_get():
     ## make sure to use the as_dictionary() method with the brackets here to get serializable dictionary
     ## song in line below is arbitrary could be x y or z
     if len(all_songs):
-        print len(all_songs)
         data = json.dumps([song.as_dictionary() for song in all_songs])  ################  Key concept
         return Response(data, 200, headers = headers, mimetype="application/json")
     else:
-        data = "No songs to show you yet"
+        data = json.dumps({"status":"No songs to show you yet"})
         return Response(data,404, headers = headers, mimetype="application/json")
     
 
-@app.route("/api/songs/post", methods=["POST"])
+#@app.route("/api/songs/post", methods=["POST"])
+@app.route("/api/songs/", methods=["POST"])
 @decorators.accept("application/json")
 def song_post():
     """ post a song """
@@ -47,18 +47,31 @@ def song_post():
     ######### get the data from the form
     data = request.json
 
-    post_song = models.Song(song_name=data["song_name"],id=data["song_id"])  ## ask sam if we really need to post seperately.
-    post_file = models.File(song_id=data["song_id"],file_name=data["file_name"],id=data["file_id"])
+    post_song = models.Song(song_name=data["song_name"])  ## ask sam if we really need to post seperately.
+    
+    session.add(post_song)
+    session.commit()
+    
+    post_file = models.File(filename=data["filename"],song_id=data["song_id"])
+    
+    session.add(post_file)
+    session.commit()
+    
+    # new_id = session.query(models.Song).order_by('id').first()
+    
+    # print "*************** new_id here ***********  {}".format(new_id.id)
+    
+    # ObjectRes.query.order_by('-id').first()
 
 
-    if not session.query(models.Song).get(post_song.id):  #consider adding a check here for duplicate fileID too
-        session.add_all([post_song,post_file])
-        session.commit()
-    else:
-        print "************* ELSE ***************"
-        session.rollback()
-        session.flush()
-        return Response(json.dumps({"status":"failed - that song already exists"}),500, mimetype="application/json")
+    # if not session.query(models.Song).get(new_id):  #consider adding a check here for duplicate fileID too
+    #     session.add_all([post_song,post_file])
+    #     session.commit()
+    # else:
+    #     print "************* ELSE ***************"
+    #     session.rollback()
+    #     session.flush()
+    #     return Response(json.dumps({"status":"failed - that song already exists"}),500, mimetype="application/json")
         
     return Response(stripUnicode(data), 200, headers=headers, mimetype="application/json")
     
@@ -73,21 +86,14 @@ def song_delete():
     data = request.json
     
     post_song = models.Song(song_name=data["song_name"],id=data["song_id"])  ## ask sam if we really need to post seperately.
-    post_file = models.File(song_id=data["song_id"],file_name=data["file_name"],id=data["file_id"])
-  
-    if session.query(models.Song).get(post_song.id):  #consider adding a check here for duplicate fileID too
-        del_song=session.query(models.Song).get(post_song.id)
-        session.delete(del_song)
+    post_file = models.File(id=data["song_id"],filename=data["filename"])
+    
+    del_song=session.query(models.Song).get(post_song.id)
+    session.delete(del_song)
         
-        del_file = session.query(models.File).get(post_file.id)
-        session.delete(del_file)
-        
-        session.commit()
-    else:
-        print "************* ELSE ***************"
-        session.rollback()
-        session.flush()
-        return Response(json.dumps({"status":"failed - that song doesnt exists"}),500,mimetype="application/json")
+    del_file = session.query(models.File).get(post_file.id)
+    session.delete(del_file)
+    session.commit()
     
     return Response(json.dumps({"status":"deleted"}), 200, headers=headers, mimetype="application/json")
     
@@ -136,7 +142,7 @@ Also review python path and unittest with Sam since this nosetest bug is a pain.
 Revisit headers - I think that the api/post seems good.  Returns json. also  added accept application/json to test request
 
 test json - old test json modified now.  
-{"song_id": 8, "song_name": "songname8", "file": {"file_name": "filename8", "song_id": 8, "file_id": 8}}
+{"song_id": 8, "song_name": "song99", "song_id": 8, "file_id": 8}}
 
 json.dumps encodes python to json
 json.loads encodes json to python

@@ -43,22 +43,6 @@
                     </ul>
                 </div>
             </div>
-            
-    <!--<div id="song_form">
-        <form role="form" method="POST">
-            <div class="form-group">
-                <label for="song_name">Song Name</label>
-                <input type="text" class="form-control" id="title" name="song_name" placeholder="Song Name" required>
-            </div>
-            <div class="form-group">
-                <label for="content">Content</label>
-                <textarea class="form-control" id="content" name="song_id" placeholder="Song ID" rows="1" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-default">Submit</button>
-        </form>
-    </div> -->
-            
-            
             <div class="pure-u-1 pure-u-md-3-4" id="luke">
                 <div>
                     <img src="/static/img/luke.png">
@@ -88,9 +72,9 @@
         <ul>
             {{#each songs}}
             <li>
-                <a href="#" class="song" data-id="{{ id }}"
+                <a href="#" class="song" data-id="{{ file.song_id }}"
                    data-path="{{ file.path }}">
-                    {{ file.filename }}
+                    {{ song_name }}
                 </a>
             </li>
             {{/each}}
@@ -102,7 +86,7 @@
             </li>
         </ul>
     </script>
-    
+
 
     </body>
 </html>
